@@ -1,5 +1,5 @@
 "use client";
-import { useTemplateEditor } from "../../../crud-client/src/hooks/useTemplateEditor";
+import { useTemplateEditor } from "@/hooks/useTemplateEditor";
 import { useState, useEffect } from "react";
 
 export default function TemplateEditor({ entity }: { entity: string }) {
