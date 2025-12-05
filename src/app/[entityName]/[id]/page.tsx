@@ -7,23 +7,14 @@ import { useAuth } from '@/contexts/AuthContext';
 // 🔧 Where the form engine (entity-core-ui / crud-client) lives.
 // You can point this at entity-core-ui when that DNS is ready.
 const ENTITY_UI_ORIGIN =
-    process.env.NEXT_PUBLIC_ENTITY_UI_ORIGIN ?? 'https://crud-client.fullstackjedi.dev';
+    process.env.NEXT_PUBLIC_ENTITY_UI_ORIGIN ??
+    'https://crud-client.fullstackjedi.dev';
 
 // -----------------------------------------------------------------------------
-// JSX typing for custom element
+// Custom element interface for ref typing
 // -----------------------------------------------------------------------------
-declare global {
-    namespace JSX {
-        interface IntrinsicElements {
-            'entity-form': React.DetailedHTMLProps<
-                React.HTMLAttributes<HTMLElement>,
-                HTMLElement
-            > & {
-                entity?: string;
-                'entity-id'?: string;
-            };
-        }
-    }
+interface EntityFormElement extends HTMLElement {
+    jwt?: string | null;
 }
 
 // -----------------------------------------------------------------------------
@@ -33,7 +24,7 @@ function defineEntityFormElement() {
     if (typeof window === 'undefined') return;
     if (customElements.get('entity-form')) return;
 
-    class EntityFormElement extends HTMLElement {
+    class EntityFormElementImpl extends HTMLElement {
         private iframe: HTMLIFrameElement | null = null;
         private token: string | null = null;
 
@@ -61,7 +52,7 @@ function defineEntityFormElement() {
         attributeChangedCallback(
             name: string,
             oldValue: string | null,
-            newValue: string | null,
+            newValue: string | null
         ) {
             if (oldValue !== newValue) {
                 this.updateIframeSrc();
@@ -95,7 +86,7 @@ function defineEntityFormElement() {
                 () => {
                     this.postToken();
                 },
-                { once: true },
+                { once: true }
             );
         }
 
@@ -108,15 +99,18 @@ function defineEntityFormElement() {
                         type: 'ENTITY_FORM_SET_TOKEN',
                         token: this.token,
                     },
-                    ENTITY_UI_ORIGIN,
+                    ENTITY_UI_ORIGIN
                 );
             } catch (err) {
-                console.error('[entity-form] Failed to post token to iframe:', err);
+                console.error(
+                    '[entity-form] Failed to post token to iframe:',
+                    err
+                );
             }
         }
     }
 
-    customElements.define('entity-form', EntityFormElement);
+    customElements.define('entity-form', EntityFormElementImpl);
 }
 
 // -----------------------------------------------------------------------------
@@ -130,7 +124,7 @@ export default function EntityDetailPage() {
     const { getToken } = useAuth();
     const [token, setToken] = useState<string | null>(null);
     const [tokenError, setTokenError] = useState<string | null>(null);
-    const formRef = useRef<HTMLElement | null>(null);
+    const formRef = useRef<EntityFormElement | null>(null);
 
     // Define custom element once on client
     useEffect(() => {
@@ -169,11 +163,7 @@ export default function EntityDetailPage() {
         if (!formRef.current) return;
         if (!token) return;
 
-
-        if ('jwt' in formRef.current) {
-
-            formRef.current.jwt = token;
-        }
+        formRef.current.jwt = token;
     }, [token]);
 
     if (!entityName || !id) {
