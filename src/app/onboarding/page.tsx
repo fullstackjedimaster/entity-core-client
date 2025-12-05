@@ -1,9 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { settings } from "@/lib/settings";
 import { useAuth } from "@/contexts/AuthContext";
+
+/**
+ * Wrapper component to satisfy Next's requirement that
+ * useSearchParams() be used inside a Suspense boundary.
+ */
+export default function OnboardingPage() {
+    return (
+        <Suspense
+            fallback={
+                <main className="p-6 max-w-md mx-auto">
+                    <h1 className="text-2xl font-bold mb-4">
+                        Create Your Organization
+                    </h1>
+                    <p className="text-gray-700">Loading onboarding…</p>
+                </main>
+            }
+        >
+            <OnboardingInner />
+        </Suspense>
+    );
+}
 
 /**
  * Onboarding creates an organization schema and assigns the user to it.
@@ -14,7 +35,7 @@ import { useAuth } from "@/contexts/AuthContext";
  * Which triggers `onContinuePostLogin` and causes Auth0 to re-mint the
  * refresh token + access token *with* the new org_id/schema claims included.
  */
-export default function OnboardingPage() {
+function OnboardingInner() {
     const router = useRouter();
     const params = useSearchParams();
 
@@ -26,9 +47,6 @@ export default function OnboardingPage() {
     const { isAuthenticated, getToken, user } = useAuth();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-
-
-
 
     // Decode onboarding session token
     useEffect(() => {
@@ -45,12 +63,14 @@ export default function OnboardingPage() {
 
     // Wait for Auth0 app_metadata propagation
     const waitForAuth0Metadata = async (sub: string, org: string) => {
-        const url = `${settings.CRUD_SERVER_URL}/internal/wait_for_metadata?sub=${encodeURIComponent(sub)}&org_id=${encodeURIComponent(org)}`;
+        const url = `${settings.CRUD_SERVER_URL}/internal/wait_for_metadata?sub=${encodeURIComponent(
+            sub
+        )}&org_id=${encodeURIComponent(org)}`;
 
         for (let attempt = 0; attempt < 24; attempt++) {
             const res = await fetch(url);
             if (res.ok) return true;
-            await new Promise(r => setTimeout(r, 500));
+            await new Promise((r) => setTimeout(r, 500));
         }
 
         return false;
@@ -81,11 +101,14 @@ export default function OnboardingPage() {
                 picture: decoded?.picture || null,
             };
 
-            const provRes = await fetch(`${settings.CRUD_SERVER_URL}/api/provision_tenant`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(body),
-            });
+            const provRes = await fetch(
+                `${settings.CRUD_SERVER_URL}/api/provision_tenant`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(body),
+                }
+            );
             if (!provRes.ok) {
                 const t = await provRes.text().catch(() => "");
                 setError(`Provision failed (${provRes.status}): ${t}`);
@@ -93,19 +116,17 @@ export default function OnboardingPage() {
             }
             const prov = await provRes.json();
             // Wait for Auth0 to reflect app_metadata (roles/perms/org_id)
-            await waitForAuth0Metadata(decoded?.sub, prov?.app_metadata?.org_id || org);
+            await waitForAuth0Metadata(
+                decoded?.sub,
+                prov?.app_metadata?.org_id || org
+            );
 
             // Now ask Auth0 to re-mint tokens with claims
             window.location.href = `https://${process.env.NEXT_PUBLIC_AUTH0_DOMAIN}/continue?state=${stateParam}`;
-
-
-
-        }
-        catch (err: any) {
+        } catch (err: any) {
             console.error("[Onboarding] Error:", err);
             setError(err.message || "Unknown error");
-        }
-        finally {
+        } finally {
             setLoading(false);
         }
     };
