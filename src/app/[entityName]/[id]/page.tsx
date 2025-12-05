@@ -4,6 +4,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 
+const EntityFormElement = "entity-form" as any;
+
 // 🔧 Where the form engine (entity-core-ui / crud-client) lives.
 // You can point this at entity-core-ui when that DNS is ready.
 const ENTITY_UI_ORIGIN =
@@ -188,11 +190,15 @@ export default function EntityDetailPage() {
             )}
 
             {/* Web component host */}
-            <entity-form
+            {/* Web component host */}
+            <EntityFormElement
                 ref={formRef as any}
                 entity={entityName}
                 entity-id={id}
-            />
+                /* same props as before */
+            >
+            </EntityFormElement>
+
         </div>
     );
 }
